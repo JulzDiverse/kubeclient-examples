@@ -4,8 +4,8 @@ import (
 	"log"
 	"os"
 
+	v11 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1"
-	meta "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/oidc"
@@ -29,7 +29,7 @@ func main() {
 		panic(err.Error())
 	}
 
-	factory := informers.NewSharedInformerFactoryWithOptions(clientset, 0, informers.WithNamespace("eirini"))
+	factory := informers.NewSharedInformerFactoryWithOptions(clientset, 5000, informers.WithNamespace("eirini"))
 	informer := factory.Core().V1().Pods().Informer()
 	stopper := make(chan struct{})
 	defer close(stopper)
@@ -41,14 +41,8 @@ func main() {
 			log.Printf("\nNew Pod Added to Store: %s", name)
 		},
 		UpdateFunc: func(obj interface{}, newObj interface{}) {
-			mObj := obj.(v1.Object)
-
-			name := mObj.GetName()
-			log.Printf("\nPod Changed to Store: %s", name)
-
-			pod, _ := clientset.Core().Pods("eirini").Get(name, meta.GetOptions{})
-
-			log.Printf("Pod: %s", pod.Status.PodIP)
+			mObj := obj.(*v11.Pod)
+			log.Printf("Pod IP:%s", mObj.Status.PodIP)
 		},
 		DeleteFunc: func(obj interface{}) {
 			mObj := obj.(v1.Object)
